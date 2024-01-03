@@ -4,32 +4,35 @@
 #include <QAbstractListModel>
 #include <QDir>
 
-class FileSystemModel : public QAbstractListModel
-{
+class FileSystemModel : public QAbstractListModel {
     Q_OBJECT
+    Q_PROPERTY(QString currentPath READ getCurrentPath NOTIFY currentPathChanged)
+    Q_PROPERTY(bool isRootDirectory READ getIsRootDirectory NOTIFY currentPathChanged)
 
 public:
-    enum Roles {
-        NameRole = Qt::UserRole + 1,
-        TypeRole
+    enum FileRoles {
+        FileNameRole = Qt::UserRole + 1,
+        IsDirectoryRole
     };
 
     explicit FileSystemModel(QObject *parent = nullptr);
 
-    void setRootPath(const QString &path = QString());
-
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    QHash<int, QByteArray> roleNames() const override;
 
-public slots:
-    QString getName(int index) const;
-    QString getType(int index) const;
+    bool getIsRootDirectory() const;
+
+    QString getCurrentPath() const;
+    Q_INVOKABLE void setPath(const QString &path);
+
+signals:
+    void currentPathChanged();
 
 private:
-    QDir m_dir;
-    QList<QFileInfo> m_fileInfoList;
-
-    void updateData();
+    QDir currentDir;
+    QStringList fileList;
+    void updateFileList();
 };
 
-#endif
+#endif // FILESYSTEMMODEL_H

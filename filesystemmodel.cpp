@@ -1,64 +1,57 @@
-// filesystemmodel.cpp
-#include "filesystemmodel.h"
-#include <QStandardPaths>
-
+#include "FileSystemModel.h"
+#include <QFileInfo>
 
 FileSystemModel::FileSystemModel(QObject *parent)
-    : QAbstractListModel(parent)
-{
+    : QAbstractListModel(parent) {
+    setPath(QDir::homePath());
 }
 
-void FileSystemModel::setRootPath(const QString &path)
-{
-    beginResetModel();
-    m_dir.setPath(path.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::HomeLocation) : path);
-    updateData();
-    endResetModel();
+int FileSystemModel::rowCount(const QModelIndex &parent) const {
+    Q_UNUSED(parent);
+    return fileList.count();
 }
 
-int FileSystemModel::rowCount(const QModelIndex &parent) const
-{
-    if (parent.isValid())
-        return 0;
+QVariant FileSystemModel::data(const QModelIndex &index, int role) const {
+    if (!index.isValid()) return QVariant();
 
-    return m_fileInfoList.count();
-}
-
-QVariant FileSystemModel::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid() || index.row() >= m_fileInfoList.size())
-        return QVariant();
-
-    const QFileInfo &fileInfo = m_fileInfoList.at(index.row());
+    const QString &fileName = fileList[index.row()];
+    QFileInfo fileInfo(currentDir.absoluteFilePath(fileName));
 
     switch (role) {
-    case NameRole:
+    case FileNameRole:
         return fileInfo.fileName();
-    case TypeRole:
-        return fileInfo.isDir() ? "Directory" : "File";
+    case IsDirectoryRole:
+        return fileInfo.isDir();
     default:
         return QVariant();
     }
 }
 
-QString FileSystemModel::getName(int index) const
-{
-    if (index < 0 || index >= m_fileInfoList.size())
-        return QString();
-
-    return m_fileInfoList.at(index).fileName();
+bool FileSystemModel::getIsRootDirectory() const {
+    return currentDir.isRoot();
 }
 
-QString FileSystemModel::getType(int index) const
-{
-    if (index < 0 || index >= m_fileInfoList.size())
-        return QString();
-
-    return m_fileInfoList.at(index).isDir() ? "Directory" : "File";
+QHash<int, QByteArray> FileSystemModel::roleNames() const {
+    QHash<int, QByteArray> roles;
+    roles[FileNameRole] = "fileName";
+    roles[IsDirectoryRole] = "isDirectory";
+    return roles;
 }
 
+QString FileSystemModel::getCurrentPath() const {
+    return currentDir.absolutePath();
+}
 
-void FileSystemModel::updateData()
-{
-    m_fileInfoList = m_dir.entryInfoList();
+void FileSystemModel::setPath(const QString &path) {
+    QDir newDir(path);
+    if (newDir.exists()) {
+        currentDir = newDir;
+        emit currentPathChanged();
+        updateFileList();
+    }
+}
+
+void FileSystemModel::updateFileList() {
+    fileList = currentDir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries, QDir::DirsFirst | QDir::Name);
+    emit dataChanged(createIndex(0, 0), createIndex(fileList.size(), 0));
 }

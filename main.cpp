@@ -1,32 +1,15 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include "filesystemmodel.h"
+#include "FileSystemModel.h"
 
-int main(int argc, char *argv[])
-{
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-
+int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
 
-    FileSystemModel fileSystemModel;
-
-    fileSystemModel.setRootPath();
+    qmlRegisterType<FileSystemModel>("FileSystemModel", 1, 0, "FileSystemModel");
 
     QQmlApplicationEngine engine;
-
-    QQmlContext *context = engine.rootContext();
-
-    context->setContextProperty("fileSystemModel", &fileSystemModel);
-
     const QUrl url(QStringLiteral("/Users/kmr/QtAcademyCourse/Day6AppAlpha/Main.qml"));
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-        &app, [url](QObject *obj, const QUrl &objUrl) {
-            if (!obj && url == objUrl)
-                QCoreApplication::exit(-1);
-        }, Qt::QueuedConnection);
     engine.load(url);
 
     return app.exec();
 }
-
